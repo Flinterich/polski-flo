@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🇵🇱 Polski für Flo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #060e06; color: #e8f5e8; font-family: 'Inter', system-ui, sans-serif; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0a1a0a; }
+  ::-webkit-scrollbar-thumb { background: #2d4a2d; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const CATEGORIES = [
+  { id: "greeting", label: "Alltag & Begrüßung", emoji: "👋" },
+  { id: "weather",  label: "Wetter",             emoji: "🌤" },
+  { id: "sailing",  label: "Segeln & Nautik",    emoji: "⛵" },
+  { id: "food",     label: "Essen & Restaurant", emoji: "🍽" },
+  { id: "numbers",  label: "Zahlen & Uhrzeiten", emoji: "🕐" },
+];
+
+const VOCAB = {
+  greeting: [
+    { pl: "Dzień dobry",       de: "Guten Tag",              tip: "dzjen DOB-ry" },
+    { pl: "Cześć",             de: "Hallo / Tschüss",        tip: "tschestsch" },
+    { pl: "Dobranoc",          de: "Gute Nacht",             tip: "dob-RA-nots" },
+    { pl: "Jak się masz?",     de: "Wie geht's?",            tip: "yak sje mash" },
+    { pl: "Dobrze, dziękuję",  de: "Gut, danke",             tip: "DOB-sche djen-KU-je" },
+    { pl: "Przepraszam",       de: "Entschuldigung",         tip: "psche-PRA-scham" },
+    { pl: "Proszę",            de: "Bitte",                  tip: "PRO-sche" },
+    { pl: "Tak / Nie",         de: "Ja / Nein",              tip: "tak / nje" },
+    { pl: "Do widzenia",       de: "Auf Wiedersehen",        tip: "do vi-DSE-nja" },
+    { pl: "Mam na imię Flo",   de: "Ich heiße Flo",         tip: "mam na I-mje Flo" },
+  ],
+  weather: [
+    { pl: "Jaka jest pogoda?",  de: "Wie ist das Wetter?",   tip: "YA-ka jest po-GO-da" },
+    { pl: "Jest słonecznie",    de: "Es ist sonnig",         tip: "jest swo-NETSCH-nje" },
+    { pl: "Pada deszcz",        de: "Es regnet",             tip: "PA-da deschtsch" },
+    { pl: "Jest wietrznie",     de: "Es ist windig",         tip: "jest VJET-schnje" },
+    { pl: "Zimno / Ciepło",     de: "Kalt / Warm",           tip: "TSCHI-mno / TSCHE-pwo" },
+    { pl: "Burza",              de: "Gewitter",              tip: "BU-scha" },
+    { pl: "Mgła",               de: "Nebel",                 tip: "mgwa" },
+    { pl: "Fala",               de: "Welle",                 tip: "FA-la" },
+    { pl: "Wiatr północny",     de: "Nordwind",              tip: "VJATР POOW-nots-ny" },
+    { pl: "Prognoza pogody",    de: "Wettervorhersage",      tip: "prog-NO-sa po-GO-dy" },
+  ],
+  sailing: [
+    { pl: "Żagiel",             de: "Segel",                 tip: "SCA-gjel" },
+    { pl: "Ster",               de: "Steuer / Ruder",        tip: "ster" },
+    { pl: "Cumować",            de: "festmachen / anlegen",  tip: "tsu-MO-vatch" },
+    { pl: "Kotwica",            de: "Anker",                 tip: "kot-VI-tsa" },
+    { pl: "Port",               de: "Hafen",                 tip: "port" },
+    { pl: "Baksztag",           de: "Backstag",              tip: "bak-SHTAG" },
+    { pl: "Hals / Sztag",       de: "Vorstag / Fock",        tip: "hals / shtag" },
+    { pl: "Na wiatr",           de: "Am Wind",               tip: "na VJATР" },
+    { pl: "Mapa morska",        de: "Seekarte",              tip: "MA-pa MOR-ska" },
+    { pl: "Kamizelka ratunkowa",de: "Rettungsweste",         tip: "ka-mi-SEL-ka ra-tun-KO-va" },
+  ],
+  food: [
+    { pl: "Poproszę menu",      de: "Die Speisekarte bitte", tip: "po-PRO-sche ME-nu" },
+    { pl: "Smacznego",          de: "Guten Appetit",         tip: "smatsch-NE-go" },
+    { pl: "Pyszne!",            de: "Lecker!",               tip: "PYSCH-ne" },
+    { pl: "Rachunek proszę",    de: "Die Rechnung bitte",    tip: "ra-CHU-nek PRO-sche" },
+    { pl: "Bez mięsa",          de: "Ohne Fleisch",          tip: "bes MJEN-sa" },
+    { pl: "Woda / Piwo / Wino", de: "Wasser / Bier / Wein", tip: "VO-da / PI-vo / VI-no" },
+    { pl: "Czy jest stolik?",   de: "Haben Sie einen Tisch?",tip: "tschy jest STO-lik" },
+    { pl: "Jestem alergikiem",  de: "Ich bin Allergiker",   tip: "YES-tem a-ler-GI-kem" },
+    { pl: "Na zdrowie!",        de: "Prost!",                tip: "na SDRO-vje" },
+    { pl: "Śniadanie / Obiad",  de: "Frühstück / Mittagessen",tip: "schnja-DA-nje / O-bjad" },
+  ],
+  numbers: [
+    { pl: "Jeden, dwa, trzy",        de: "Eins, zwei, drei",       tip: "YE-den, dva, tschy" },
+    { pl: "Cztery, pięć, sześć",     de: "Vier, fünf, sechs",      tip: "TSCHTE-ry, pjentsch, schestsch" },
+    { pl: "Siedem, osiem, dziewięć", de: "Sieben, acht, neun",     tip: "SCHE-dem, O-schem, DSCHE-vjentsch" },
+    { pl: "Dziesięć",                de: "Zehn",                   tip: "DSCHE-sjentsch" },
+    { pl: "Która godzina?",          de: "Wie spät ist es?",       tip: "KTU-ra go-DSI-na" },
+    { pl: "Jest godzina trzecia",    de: "Es ist drei Uhr",        tip: "jest go-DSI-na TSCHE-tsja" },
+    { pl: "Rano / Wieczór",          de: "Morgens / Abends",       tip: "RA-no / VJE-tschur" },
+    { pl: "Dziś / Jutro",            de: "Heute / Morgen",         tip: "dschisch / YUT-ro" },
+    { pl: "Ile kosztuje?",           de: "Was kostet das?",        tip: "I-le kosch-TU-je" },
+    { pl: "Sto / Tysiąc",            de: "Hundert / Tausend",      tip: "sto / TY-sjontsch" },
+  ],
+};
+
+const DIALOGUES = {
+  greeting: [{ lines: [
+    { speaker: "A", pl: "Dzień dobry! Jak się masz?", de: "Guten Tag! Wie geht's?" },
+    { speaker: "B", pl: "Dobrze, dziękuję. A pan/pani?", de: "Gut, danke. Und Sie?" },
+    { speaker: "A", pl: "Też dobrze. Mam na imię Flo.", de: "Auch gut. Ich heiße Flo." },
+    { speaker: "B", pl: "Miło mi. Do widzenia!", de: "Nett Sie kennenzulernen. Auf Wiedersehen!" },
+  ]}],
+  weather: [{ lines: [
+    { speaker: "A", pl: "Jaka jest pogoda?", de: "Wie ist das Wetter?" },
+    { speaker: "B", pl: "Pada deszcz i jest wietrznie.", de: "Es regnet und ist windig." },
+    { speaker: "A", pl: "Burza nadchodzi?", de: "Kommt ein Gewitter?" },
+    { speaker: "B", pl: "Nie, prognoza jest dobra.", de: "Nein, die Vorhersage ist gut." },
+  ]}],
+  sailing: [{ lines: [
+    { speaker: "A", pl: "Gdzie jest port?", de: "Wo ist der Hafen?" },
+    { speaker: "B", pl: "Prosto, dwa kilometry.", de: "Geradeaus, zwei Kilometer." },
+    { speaker: "A", pl: "Możemy cumować?", de: "Können wir festmachen?" },
+    { speaker: "B", pl: "Tak, jest wolne miejsce.", de: "Ja, es gibt einen freien Platz." },
+  ]}],
+  food: [{ lines: [
+    { speaker: "A", pl: "Poproszę menu.", de: "Die Speisekarte bitte." },
+    { speaker: "B", pl: "Oczywiście. Co pan/pani pije?", de: "Natürlich. Was trinken Sie?" },
+    { speaker: "A", pl: "Wodę i piwo, proszę.", de: "Wasser und ein Bier, bitte." },
+    { speaker: "B", pl: "Smacznego!", de: "Guten Appetit!" },
+  ]}],
+  numbers: [{ lines: [
+    { speaker: "A", pl: "Która godzina?", de: "Wie spät ist es?" },
+    { speaker: "B", pl: "Jest godzina dziesiąta.", de: "Es ist zehn Uhr." },
+    { speaker: "A", pl: "Ile kosztuje piwo?", de: "Was kostet das Bier?" },
+    { speaker: "B", pl: "Pięć złotych.", de: "Fünf Złoty." },
+  ]}],
+};
+
+// ── SPEECH ────────────────────────────────────────────────────────────────────
+function speak(text, rate = 0.85) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = "pl-PL";
+  utt.rate = rate;
+  const trySpeak = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const pl = voices.find(v => v.lang.startsWith("pl"));
+    if (pl) utt.voice = pl;
+    window.speechSynthesis.speak(utt);
+  };
+  if (window.speechSynthesis.getVoices().length) trySpeak();
+  else { window.speechSynthesis.onvoiceschanged = trySpeak; }
+}
+
+function useSpeechRecognition() {
+  const [transcript, setTranscript] = useState("");
+  const [listening, setListening] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const recRef = useRef(null);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) setSupported(false);
+  }, []);
+
+  const start = useCallback((onResult) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "pl-PL";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const t = e.results[0][0].transcript;
+      setTranscript(t);
+      if (onResult) onResult(t);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = (e) => {
+      console.warn("SR error:", e.error);
+      setListening(false);
+    };
+    recRef.current = rec;
+    setListening(true);
+    setTranscript("");
+    rec.start();
+  }, []);
+
+  const stop = useCallback(() => {
+    recRef.current?.stop();
+    setListening(false);
+  }, []);
+
+  return { transcript, listening, supported, start, stop };
+}
+
+function scoreMatch(spoken, target) {
+  const a = spoken.toLowerCase().replace(/[^a-ząćęłńóśźż ]/g, "");
+  const b = target.toLowerCase().replace(/[^a-ząćęłńóśźż ]/g, "");
+  if (a === b) return 100;
+  const wordsA = a.split(" ");
+  const wordsB = b.split(" ");
+  const hits = wordsA.filter(w => wordsB.includes(w)).length;
+  return Math.round((hits / Math.max(wordsB.length, 1)) * 100);
+}
+
+// ── PROGRESS ──────────────────────────────────────────────────────────────────
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem("flo_pl_progress") || "{}"); }
+  catch { return {}; }
+}
+function saveProgress(p) {
+  try { localStorage.setItem("flo_pl_progress", JSON.stringify(p)); } catch {}
+}
+function getPrevDay() {
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── FLASHCARD ─────────────────────────────────────────────────────────────────
+function FlashCard({ card, onNext, onCorrect }) {
+  const [flipped, setFlipped] = useState(false);
+  const [result, setResult] = useState(null);
+  const { transcript, listening, supported, start, stop } = useSpeechRecognition();
+
+  useEffect(() => { setFlipped(false); setResult(null); }, [card]);
+
+  const handleFlip = () => {
+    setFlipped(f => !f);
+    if (!flipped) speak(card.pl);
+  };
+
+  const handleSpeak = () => {
+    if (listening) { stop(); return; }
+    start((spoken) => {
+      const score = scoreMatch(spoken, card.pl);
+      const ok = score >= 55;
+      setResult(ok ? "ok" : "miss");
+      if (ok) onCorrect();
+    });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <div onClick={handleFlip} style={{
+        width: "100%", maxWidth: 420, minHeight: 170,
+        background: flipped ? "#1a2e1a" : "#0f1f0f",
+        border: `2px solid ${flipped ? "#4ade80" : "#2d4a2d"}`,
+        borderRadius: 16, cursor: "pointer",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        gap: 10, padding: 24, transition: "all 0.3s",
+        boxShadow: flipped ? "0 0 24px #4ade8033" : "none",
+      }}>
+        <div style={{ fontSize: 11, color: "#4a7a4a", textTransform: "uppercase", letterSpacing: 1 }}>
+          {flipped ? "Polnisch" : "Deutsch"}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 700, color: "#e8f5e8", textAlign: "center" }}>
+          {flipped ? card.pl : card.de}
+        </div>
+        {flipped && (
+          <div style={{ fontSize: 13, color: "#86efac", fontFamily: "monospace", letterSpacing: 1 }}>
+            [{card.tip}]
+          </div>
+        )}
+        {!flipped && (
+          <div style={{ fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>
+            Tippen → Polnisch + Aussprache
+          </div>
+        )}
+      </div>
+
+      {flipped && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%" }}>
+          {supported ? (
+            <>
+              <button onClick={handleSpeak} style={{
+                background: listening ? "#ef4444" : "#166534",
+                color: "#fff", border: "none", borderRadius: 50,
+                width: 64, height: 64, fontSize: 28, cursor: "pointer",
+                boxShadow: listening ? "0 0 20px #ef444466" : "none",
+                transition: "all 0.2s",
+              }}>
+                {listening ? "⏹" : "🎤"}
+              </button>
+              <div style={{ fontSize: 12, color: "#6b9e6b" }}>
+                {listening ? "Spreche Polnisch …" : "Nachsprechen & bewerten"}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: "#f87171", background: "#1a0a0a", padding: "8px 14px", borderRadius: 8 }}>
+              Spracherkennung nicht verfügbar (nur Chrome/Edge)
+            </div>
+          )}
+
+          {transcript && (
+            <div style={{
+              background: "#0a1a0a", borderRadius: 10, padding: "10px 16px",
+              width: "100%", maxWidth: 380, textAlign: "center",
+            }}>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>Erkannt: „{transcript}"</div>
+              <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: result === "ok" ? "#4ade80" : "#f87171" }}>
+                {result === "ok" ? "✓ Sehr gut!" : "✗ Nochmal versuchen"}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+        <button onClick={() => { onCorrect(); onNext(); }} style={{
+          background: "#166534", color: "#fff", border: "none",
+          borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontSize: 14,
+        }}>✓ Kann ich</button>
+        <button onClick={onNext} style={{
+          background: "#1c3a1c", color: "#86efac",
+          border: "1px solid #2d4a2d", borderRadius: 8,
+          padding: "8px 20px", cursor: "pointer", fontSize: 14,
+        }}>→ Weiter</button>
+      </div>
+    </div>
+  );
+}
+
+// ── DIALOGUE ──────────────────────────────────────────────────────────────────
+function DialoguePractice({ catId }) {
+  const dialogue = DIALOGUES[catId]?.[0];
+  const [step, setStep] = useState(0);
+  const [result, setResult] = useState(null);
+  const { transcript, listening, supported, start, stop } = useSpeechRecognition();
+
+  useEffect(() => { setStep(0); setResult(null); }, [catId]);
+
+  if (!dialogue) return (
+    <div style={{ color: "#6b9e6b", textAlign: "center", padding: 40 }}>Kein Dialog.</div>
+  );
+
+  const current = dialogue.lines[step];
+  const isUserTurn = current?.speaker === "B";
+
+  const handleMic = () => {
+    if (listening) { stop(); return; }
+    start((spoken) => {
+      setResult(scoreMatch(spoken, current.pl) >= 50 ? "ok" : "miss");
+    });
+  };
+
+  const next = () => {
+    setResult(null);
+    setStep(s => s < dialogue.lines.length - 1 ? s + 1 : dialogue.lines.length);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {dialogue.lines.map((line, i) => (
+        <div key={i} style={{
+          display: "flex", gap: 10,
+          opacity: i > step ? 0.25 : 1,
+          transition: "opacity 0.3s",
+          flexDirection: line.speaker === "A" ? "row" : "row-reverse",
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 50, flexShrink: 0,
+            background: line.speaker === "A" ? "#1e3a5f" : "#166534",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 14, color: "#fff", fontWeight: 700,
+          }}>{line.speaker}</div>
+          <div style={{
+            background: i === step ? (line.speaker === "A" ? "#0f1e2f" : "#0f1f0f") : "#0a0f0a",
+            border: `1px solid ${i === step ? "#2d5a8a" : "#1a2a1a"}`,
+            borderRadius: 12, padding: "10px 14px", maxWidth: "75%",
+          }}>
+            <div style={{ fontSize: 15, color: "#e8f5e8" }}>{line.pl}</div>
+            <div style={{ fontSize: 12, color: "#6b9e6b", marginTop: 3 }}>{line.de}</div>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        {step < dialogue.lines.length && (
+          !isUserTurn ? (
+            <button onClick={() => { speak(current.pl); next(); }} style={{
+              background: "#1e3a5f", color: "#93c5fd", border: "none",
+              borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontSize: 14,
+            }}>🔊 Anhören & weiter</button>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 13, color: "#6b9e6b" }}>Deine Antwort: „{current.pl}"</div>
+              {supported ? (
+                <button onClick={handleMic} style={{
+                  background: listening ? "#ef4444" : "#166534",
+                  color: "#fff", border: "none", borderRadius: 50,
+                  width: 56, height: 56, fontSize: 24, cursor: "pointer",
+                }}>{listening ? "⏹" : "🎤"}</button>
+              ) : (
+                <div style={{ fontSize: 12, color: "#f87171" }}>Nur in Chrome/Edge verfügbar</div>
+              )}
+              {transcript && (
+                <div style={{ color: result === "ok" ? "#4ade80" : "#f87171", fontSize: 14, fontWeight: 600 }}>
+                  {result === "ok" ? "✓ Gut!" : "✗ Nochmal"} — „{transcript}"
+                </div>
+              )}
+              {result && (
+                <button onClick={next} style={{
+                  background: "#1c3a1c", color: "#86efac",
+                  border: "1px solid #2d4a2d", borderRadius: 8,
+                  padding: "8px 18px", cursor: "pointer",
+                }}>Weiter →</button>
+              )}
+            </div>
+          )
+        )}
+        {step >= dialogue.lines.length && (
+          <button onClick={() => setStep(0)} style={{
+            background: "#166534", color: "#fff", border: "none",
+            borderRadius: 8, padding: "10px 20px", cursor: "pointer",
+          }}>🔄 Dialog wiederholen</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [activeCat, setActiveCat] = useState("greeting");
+  const [mode, setMode] = useState("flash");
+  const [cardIndex, setCardIndex] = useState(0);
+  const [sessionCorrect, setSessionCorrect] = useState(0);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [progress, setProgress] = useState(loadProgress);
+  const [dayDone, setDayDone] = useState(false);
+
+  const cards = VOCAB[activeCat] || [];
+  const card = cards[cardIndex % cards.length];
+  const today = new Date().toISOString().slice(0, 10);
+  const streak = progress.streak || 0;
+  const progressPct = Math.min((sessionTotal / 10) * 100, 100);
+
+  useEffect(() => {
+    if (sessionTotal >= 10 && !dayDone) {
+      setDayDone(true);
+      const newStreak = progress.lastDay === getPrevDay() ? streak + 1 : 1;
+      const newProg = {
+        ...progress,
+        streak: newStreak,
+        lastDay: today,
+        totalCards: (progress.totalCards || 0) + sessionCorrect,
+      };
+      setProgress(newProg);
+      saveProgress(newProg);
+    }
+  }, [sessionTotal]);
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#060e06", color: "#e8f5e8",
+      fontFamily: "'Inter', system-ui, sans-serif",
+      display: "flex", flexDirection: "column",
+    }}>
+      {/* Header */}
+      <div style={{
+        background: "#0a1a0a", borderBottom: "1px solid #1a2e1a",
+        padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+            🇵🇱 <span style={{ color: "#4ade80" }}>Polski</span> für Flo
+          </div>
+          <div style={{ fontSize: 12, color: "#6b9e6b", marginTop: 1 }}>10 min täglich · A1 bis September</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#facc15" }}>🔥 {streak}</div>
+          <div style={{ fontSize: 11, color: "#6b9e6b" }}>Tage</div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: "#0f1f0f" }}>
+        <div style={{ height: 4, background: "#4ade80", width: `${progressPct}%`, transition: "width 0.4s" }} />
+      </div>
+
+      {dayDone && (
+        <div style={{
+          background: "#14532d", borderBottom: "1px solid #166534",
+          padding: "10px 20px", textAlign: "center",
+          fontSize: 14, color: "#86efac", fontWeight: 600,
+        }}>
+          ✅ Tagesziel erreicht! {sessionCorrect} von 10 richtig · Streak: {progress.streak} Tage 🔥
+        </div>
+      )}
+
+      {/* Category Tabs */}
+      <div style={{
+        display: "flex", gap: 6, padding: "12px 16px",
+        overflowX: "auto", background: "#0a1a0a", borderBottom: "1px solid #1a2e1a",
+      }}>
+        {CATEGORIES.map(cat => (
+          <button key={cat.id}
+            onClick={() => { setActiveCat(cat.id); setCardIndex(0); }}
+            style={{
+              background: activeCat === cat.id ? "#166534" : "#0f1f0f",
+              color: activeCat === cat.id ? "#fff" : "#6b9e6b",
+              border: `1px solid ${activeCat === cat.id ? "#4ade80" : "#2d4a2d"}`,
+              borderRadius: 20, padding: "6px 14px",
+              fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s",
+            }}>
+            {cat.emoji} {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mode Toggle */}
+      <div style={{ display: "flex", padding: "12px 16px", gap: 8 }}>
+        {[["flash", "🃏 Vokabeln"], ["dialogue", "💬 Dialog"]].map(([m, label]) => (
+          <button key={m} onClick={() => setMode(m)} style={{
+            flex: 1, padding: "9px 0",
+            background: mode === m ? "#1c3a1c" : "transparent",
+            color: mode === m ? "#4ade80" : "#4a7a4a",
+            border: `1px solid ${mode === m ? "#4ade80" : "#2d4a2d"}`,
+            borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600,
+            transition: "all 0.2s",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, padding: "4px 16px 24px" }}>
+        {mode === "flash"
+          ? <FlashCard key={`${activeCat}-${cardIndex}`} card={card}
+              onNext={() => { setCardIndex(i => i+1); setSessionTotal(t => t+1); }}
+              onCorrect={() => setSessionCorrect(c => c+1)} />
+          : <DialoguePractice catId={activeCat} />
+        }
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        background: "#0a1a0a", borderTop: "1px solid #1a2e1a",
+        padding: "10px 20px", display: "flex", justifyContent: "space-around",
+        fontSize: 13, color: "#6b9e6b",
+      }}>
+        <span>Heute: {sessionCorrect}/{sessionTotal} ✓</span>
+        <span>Gesamt: {(progress.totalCards || 0) + sessionCorrect} Karten</span>
+        <span>{Math.round(progressPct)}% Tagesziel</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
